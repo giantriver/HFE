@@ -14,7 +14,7 @@ pose = mp_pose.Pose()
 mp_drawing = mp.solutions.drawing_utils
 
 
-cap = cv2.VideoCapture('test2.mp4')
+cap = cv2.VideoCapture("MediaPipe_Pic_to_Video\Code\test2.mp4")
 
 # 設定儲存間隔 (秒)
 save_interval = 0.5
