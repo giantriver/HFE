@@ -42,7 +42,7 @@ def classify_pose(shoulder_angle, elbow_angle):
 # 計時相關變數
 current_pose = None
 start_time = None
-pose_frame_counts = defaultdict(int)  # 每個動作累計時間
+pose_frame_counts = defaultdict(int)  # 每個動作累計張數
 
 while cap.isOpened():
     ret, frame = cap.read()
