@@ -4,6 +4,11 @@ import numpy as np
 import time
 import os
 from collections import defaultdict
+import pandas as pd
+
+# ==========================
+#  1. 初始化參數與資料夾
+# ==========================
 
 # 建立儲存資料夾
 save_dir = "captured_images"
@@ -14,17 +19,27 @@ mp_pose = mp.solutions.pose
 pose = mp_pose.Pose()
 mp_drawing = mp.solutions.drawing_utils
 
+# 開啟影片
 cap = cv2.VideoCapture(r"C:\Mediapipe Genetate Dataset\MediaPipe_Pic_to_Video\Video\pushup.mp4")
-
-# 取得影片fps, 初始化變數
 fps = cap.get(cv2.CAP_PROP_FPS)
+frame_duration = 1 / fps
+
+# 設定儲存間隔
 save_interval = 0.5  # 秒
 save_every_n_frames = int(fps * save_interval)
 frame_counter = 0
-frame_duration = 1 / fps
 img_count = 0
 
-# 分類函式
+# ==========================
+#  2. 動作分類函式
+# ==========================
+def calculate_angle(a, b, c):
+    ba = a - b
+    bc = c - b
+    cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
+    angle = np.arccos(cosine_angle)
+    return np.degrees(angle)
+
 def classify_pose(shoulder_angle, elbow_angle):
     if shoulder_angle > 90:
         return "手肘高於肩部"
@@ -39,11 +54,14 @@ def classify_pose(shoulder_angle, elbow_angle):
     else:
         return "其他"
 
-# 計時相關變數
-current_pose = None
-start_time = None
-pose_frame_counts = defaultdict(int)  # 每個動作累計張數
+# ==========================
+#  3. 初始化計時與統計
+# ==========================
+pose_frame_counts = defaultdict(int)
 
+# ==========================
+#  4. 讀取影片逐幀處理
+# ==========================
 while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
@@ -56,7 +74,6 @@ while cap.isOpened():
 
     if results.pose_landmarks:
         mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-
         landmarks = results.pose_landmarks.landmark
 
         # 取得關鍵點 (左側)
@@ -70,19 +87,13 @@ while cap.isOpened():
                         landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y])
 
         # 計算角度
-        def calculate_angle(a, b, c):
-            ba = a - b
-            bc = c - b
-            cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
-            angle = np.arccos(cosine_angle)
-            return np.degrees(angle)
-
         elbow_angle = calculate_angle(shoulder, elbow, wrist)
         shoulder_angle = calculate_angle(hip, shoulder, elbow)
 
         # 動作分類
         pose_label = classify_pose(shoulder_angle, elbow_angle)
 
+        # 累計動作 frame 數
         pose_frame_counts[pose_label] += 1
 
         # 顯示角度與分類
@@ -96,7 +107,6 @@ while cap.isOpened():
         if frame_counter % save_every_n_frames == 0:
             save_path = os.path.join(save_dir, f"frame_{img_count:04d}_{pose_label}.jpg")
             cv2.imwrite(save_path, image)
-            #print(f"Saved {save_path}")
             img_count += 1
 
     # 縮放視窗
@@ -112,17 +122,76 @@ while cap.isOpened():
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-# 程式結束 ➔ 紀錄最後一個動作
-if current_pose is not None:
-    # 每讀到一幀，就代表這個動作多維持了一 frame
-    pose_frame_counts[current_pose] += 1
-    print(f"{current_pose} 最後累計 frame 數: {pose_frame_counts[current_pose]}")
+# ==========================
+#  5. 結束後 ➔ 輸出統計結果（確保所有動作皆顯示）
+# ==========================
 
 print("\n=== 每個動作的總計時間（依據影片 fps） ===")
-for pose, count in pose_frame_counts.items():
-    total_duration = count * frame_duration
-    print(f"{pose}: {total_duration:.2f} 秒")
 
-# 釋放資源
+# 定義所有動作種類
+all_pose_labels = ["手肘高於肩部",
+                   "手肘與肩同高",
+                   "手肘與肩同高，手臂彎曲90度",
+                   "手臂與身體10~90度",
+                   "手臂貼近身體"]
+
+pose_results = []
+
+# 動作分數對應表
+pose_weights = {
+    "手肘高於肩部": 7,
+    "手肘與肩同高": 5,
+    "手肘與肩同高，手臂彎曲90度": 4,
+    "手臂與身體10~90度": 2,
+    "手臂貼近身體": 1,
+    "其他": 0
+}
+
+total_weighted_score = 0
+total_duration = 0
+
+print("\n=== 每個動作的總計時間、單位分數與加權分數 ===")
+for pose in all_pose_labels:
+    count = pose_frame_counts.get(pose, 0)
+    duration_sec = count * frame_duration
+    weight = pose_weights.get(pose, 0)
+    weighted_score = weight * duration_sec
+
+    total_weighted_score += weighted_score
+    total_duration += duration_sec
+
+    # ➔ 顯示在 Terminal
+    print(f"{pose}: 維持 {duration_sec:.2f} 秒")
+
+    # ➔ 加入 list 準備輸出 Excel
+    pose_results.append({
+        "動作名稱": pose,
+        "維持時間 (秒)": round(duration_sec, 2),
+    })
+
+# 計算平均分數
+if total_duration > 0:
+    avg_score = total_weighted_score / total_duration
+else:
+    avg_score = 0
+
+print(f"\n✅ 平均加權分數: {avg_score:.2f}")
+
+# 將平均分數也加入 DataFrame
+pose_results.append({
+    "動作名稱": "平均加權分數",
+    "維持時間 (秒)": "",
+    "分數": round(avg_score, 2)
+})
+
+# 轉成 pandas DataFrame 並輸出成 Excel
+df = pd.DataFrame(pose_results)
+output_path = "pose_duration_results.xlsx"
+df.to_excel(output_path, index=False)
+print(f"\n✅ 已將結果輸出到 {output_path}")
+
+# ==========================
+#  6. 釋放資源
+# ==========================
 cap.release()
 cv2.destroyAllWindows()
