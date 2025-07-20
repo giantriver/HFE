@@ -1,0 +1,91 @@
+html,
+body {
+  min-height: 100dvh;
+  margin: 0;
+}
+
+:root {
+  font-size: 18px;
+
+  /* Default */
+  @media (max-width: 639px) {
+    font-size: 16px;
+  }
+}
+
+/* Set Card and Panel Styles for all pages */
+.p-card {
+  border-radius: 5px;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+  margin: 2px 4px;
+  /* max-width: min(calc(99dvw - 24px), 1280px); */
+  padding: 12px;
+}
+
+.p-card-title {
+  text-align: center;
+}
+
+.p-card-subtitle {
+  text-align: center;
+}
+
+.p-card-content {
+  padding-top: 0;
+}
+
+.smallcard {
+  max-width: min(calc(99dvw - 24px), 768px);
+  padding: 12px 20px;
+  margin: 12px auto;
+}
+
+.p-panel {
+  border-radius: 5px;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+  margin: 12px auto;
+  max-width: min(calc(99dvw - 24px), 1280px);
+}
+
+.smallpanel {
+  border-radius: 5px;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+  margin: 12px auto;
+  max-width: min(calc(99dvw - 24px), 768px);
+}
+
+/* Secondary button styling - medium gray background for better visibility */
+.p-button-secondary {
+  background-color: #9ca3af !important; /* medium gray */
+  border-color: #9ca3af !important;
+  color: white !important;
+}
+
+.p-button-secondary:hover {
+  background-color: #6b7280 !important; /* darker on hover */
+  border-color: #6b7280 !important;
+}
+
+.p-button-secondary:focus {
+  box-shadow: 0 0 0 0.2rem rgba(156, 163, 175, 0.5) !important;
+}
+
+@media (max-width: 639px) {
+  .p-card {
+    padding: 12px 18px;
+    margin-top: 8px;
+  }
+
+  .p-panel {
+    padding: 12px 18px;
+    margin-top: 8px;
+  }
+
+  .smallpanel {
+    border-radius: 4px;
+    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+    margin: 3px;
+    max-width: 100dvw;
+    padding: 3px;
+  }
+}

@@ -1,0 +1,19 @@
+*.pyc
+./tmp
+./build/*
+.idea
+env
+venv
+*.sublime*
+bin/
+lib/
+include/
+pyvenv.cfg
+
+__pycache__/
+
+# Local env files
+.env
+.env.*
+!.env.example
+
