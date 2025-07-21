@@ -5,6 +5,7 @@ import time
 import os
 from collections import defaultdict
 import pandas as pd
+from PIL import ImageFont, ImageDraw, Image
 
 # ==========================
 #  1. 初始化參數與資料夾
@@ -29,6 +30,10 @@ save_interval = 0.5  # 秒
 save_every_n_frames = int(fps * save_interval)
 frame_counter = 0
 img_count = 0
+
+# 載入中文字型
+font_path = "C:/Windows/Fonts/msjh.ttc"  # Windows 微軟正黑體
+font = ImageFont.truetype(font_path, 40)
 
 # ==========================
 #  2. 動作分類函式
@@ -96,11 +101,13 @@ while cap.isOpened():
         # 累計動作 frame 數
         pose_frame_counts[pose_label] += 1
 
-        # 顯示角度與分類
-        cv2.putText(image, f'Elbow: {int(elbow_angle)} Shoulder: {int(shoulder_angle)}',
-                    (50,50), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,0), 2)
-        cv2.putText(image, f'Pose: {pose_label}', (50,80),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0,0,255), 2)
+        # ➔ 用 PIL 畫中文
+        image_pil = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        draw = ImageDraw.Draw(image_pil)
+        draw.text((50, 50), f'手肘角度: {int(elbow_angle)}', font=font, fill=(0, 255, 0))
+        draw.text((50, 100), f'肩膀角度: {int(shoulder_angle)}', font=font, fill=(0, 255, 0))
+        draw.text((50, 150), f'動作: {pose_label}', font=font, fill=(255, 0, 0))
+        image = cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
 
         # 每隔 save_interval 秒儲存一張圖片
         frame_counter += 1
@@ -123,21 +130,19 @@ while cap.isOpened():
         break
 
 # ==========================
-#  5. 結束後 ➔ 輸出統計結果（確保所有動作皆顯示）
+#  5. 結束後 ➔ 輸出統計結果
 # ==========================
 
-print("\n=== 每個動作的總計時間（依據影片 fps） ===")
+print("\n=== 每個動作的總計時間、單位分數與加權分數 ===")
 
 # 定義所有動作種類
-all_pose_labels = ["手肘高於肩部",
-                   "手肘與肩同高",
-                   "手肘與肩同高，手臂彎曲90度",
-                   "手臂與身體10~90度",
-                   "手臂貼近身體"]
+all_pose_labels = [
+    "手肘高於肩部",
+    "手肘與肩同高",
+    "手肘與肩同高，手臂彎曲90度",
+    "手臂與身體10~90度",
+    "手臂貼近身體"]
 
-pose_results = []
-
-# 動作分數對應表
 pose_weights = {
     "手肘高於肩部": 7,
     "手肘與肩同高": 5,
@@ -147,10 +152,10 @@ pose_weights = {
     "其他": 0
 }
 
+pose_results = []
 total_weighted_score = 0
 total_duration = 0
 
-print("\n=== 每個動作的總計時間、單位分數與加權分數 ===")
 for pose in all_pose_labels:
     count = pose_frame_counts.get(pose, 0)
     duration_sec = count * frame_duration
@@ -167,6 +172,8 @@ for pose in all_pose_labels:
     pose_results.append({
         "動作名稱": pose,
         "維持時間 (秒)": round(duration_sec, 2),
+        "單位分數": weight,
+        "加權分數": round(weighted_score, 2)
     })
 
 # 計算平均分數
@@ -181,10 +188,11 @@ print(f"\n✅ 平均加權分數: {avg_score:.2f}")
 pose_results.append({
     "動作名稱": "平均加權分數",
     "維持時間 (秒)": "",
-    "分數": round(avg_score, 2)
+    "單位分數": "",
+    "加權分數": round(avg_score, 2)
 })
 
-# 轉成 pandas DataFrame 並輸出成 Excel
+# 輸出成 Excel
 df = pd.DataFrame(pose_results)
 output_path = "pose_duration_results.xlsx"
 df.to_excel(output_path, index=False)
