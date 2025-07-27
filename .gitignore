@@ -1,6 +1,7 @@
 # Customized
 dataset/
 chats.db
+temp/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
