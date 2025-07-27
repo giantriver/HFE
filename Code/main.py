@@ -21,7 +21,7 @@ pose = mp_pose.Pose()
 mp_drawing = mp.solutions.drawing_utils
 
 # 開啟影片
-cap = cv2.VideoCapture(r"C:\Mediapipe Genetate Dataset\MediaPipe_Pic_to_Video\Video\pushup.mp4")
+cap = cv2.VideoCapture(r"C:\Mediapipe Genetate Dataset\MediaPipe_Pic_to_Video\Video\yoga 1.mp4")
 fps = cap.get(cv2.CAP_PROP_FPS)
 frame_duration = 1 / fps
 
@@ -155,47 +155,51 @@ pose_weights = {
 pose_results = []
 total_weighted_score = 0
 total_duration = 0
-pose_suggestions = {
+warnings = []
+pose_feedbacks = {
     "手肘高於肩部": "建議：放低手肘，避免長時間高舉。",
-    "手肘與肩同高": "建議：盡可能休息手臂或靠近身體。",
+    "手肘與肩同高": "建議：盡可能放鬆手臂或靠近身體。",
     "手肘與肩同高，手臂彎曲90度": "建議：彎曲手臂角度可再調整減壓。",
     "手臂與身體10~90度": "動作負荷適中，請適時變換姿勢。",
     "手臂貼近身體": "此為放鬆姿勢，請持續維持。",
 }
 # 危險姿勢分數門檻（可依實際情況調整）
 warning_threshold = 60
-suggestion_collected = []
-
 
 for pose in all_pose_labels:
     count = pose_frame_counts.get(pose, 0)
     duration_sec = count * frame_duration
     weight = pose_weights.get(pose, 0)
     weighted_score = weight * duration_sec
+    feedback = ""
 
     total_weighted_score += weighted_score
     total_duration += duration_sec
+
+    # === 建議機制 ===
+    suggestion = ""
+    if weight >= 5 and duration_sec >= 60:
+        suggestion = "⚠️ 建議縮短此姿勢維持時間，避免造成身體負擔"
+        warnings.append(f"{pose} 維持時間過久（{duration_sec:.2f} 秒）")
 
     # 預設建議為空
     suggestion = ""
 
     # ➔ 顯示在 Terminal
-    print(f"{pose}: 維持 {duration_sec:.2f} 秒")
+    print(f"{pose}: 維持 {duration_sec:.2f} 秒，單位分數: {weight}，加權分數: {weighted_score:.2f}")
 
     # 根據加權分數給建議
     if weighted_score > warning_threshold:
-        suggestion = pose_suggestions.get(pose, "請注意該動作姿勢")
+        suggestion = pose_feedbacks.get(pose, "")
         print(f"⚠️ 注意：[{pose}] 加權分數 {weighted_score:.2f}，{suggestion}")
     else:
-        suggestion = pose_suggestions.get(pose, "")
+        feedback = pose_feedbacks.get(pose, "")
 
     # ➔ 加入 list 準備輸出 Excel
     pose_results.append({
         "動作名稱": pose,
         "維持時間 (秒)": round(duration_sec, 2),
-        "單位分數": weight,
-        "加權分數": round(weighted_score, 2),
-        "建議": suggestion
+        "改善建議": suggestion
     })
 
 # 計算平均分數
@@ -206,13 +210,18 @@ else:
 
 print(f"\n✅ 平均加權分數: {avg_score:.2f}")
 
+# 平均分數過高的警告與建議
+avg_suggestion = ""
+if avg_score > 4.5:
+    avg_suggestion = "⚠️ 姿勢整體負荷偏高，建議調整動作"
+    print(f"⚠️ 警告：{avg_suggestion}")
+    warnings.append("平均加權分數過高")
+
 # 將平均分數也加入 DataFrame
 pose_results.append({
     "動作名稱": "平均加權分數",
-    "維持時間 (秒)": "",
-    "單位分數": "",
-    "加權分數": round(avg_score, 2),
-    "建議": ""
+    "維持時間 (秒)": avg_score,
+    "改善建議": avg_suggestion
 })
 
 # 輸出成 Excel
