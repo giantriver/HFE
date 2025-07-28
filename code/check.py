@@ -16,7 +16,7 @@ args = parser.parse_args()
 
 # 初始化 MediaPipe pose
 mp_pose = mp.solutions.pose
-pose = mp_pose.Pose(static_image_mode=True, model_complexity=2)
+pose = mp_pose.Pose(static_image_mode=True, model_complexity=1)
 
 # 讀取圖片
 img_path = args.img_path
