@@ -21,7 +21,7 @@ pose = mp_pose.Pose()
 mp_drawing = mp.solutions.drawing_utils
 
 # 開啟影片
-cap = cv2.VideoCapture(r"C:\Mediapipe Genetate Dataset\MediaPipe_Pic_to_Video\Video\work 1.mp4")
+cap = cv2.VideoCapture(r"C:\Mediapipe Genetate Dataset\MediaPipe_Pic_to_Video\Video\work 2.mp4")
 fps = cap.get(cv2.CAP_PROP_FPS)
 frame_duration = 1 / fps
 
@@ -181,13 +181,13 @@ print(f"\n✅ 平均加權分數: {avg_score:.2f}")
 
 # 系統評估級距顯示
 if avg_score >= 6:
-    rating = "負荷極高，應立即改善"
+    rating = "負荷極高，請立即調整姿勢以避免受傷。"
 elif avg_score >= 4.5:
-    rating = "負荷偏高，建議改善姿勢"
+    rating = "負荷偏高，建議改善姿勢，以降低身體壓力。"
 elif avg_score >= 3:
-    rating = "負荷正常，可接受"
+    rating = "負荷正常，仍建議持續注意姿勢保持良好。"
 else:
-    rating = "負荷低，良好狀態"
+    rating = "負荷低，姿勢良好，請持續保持。"
 
 print(f"系統評估：{rating}")
 
